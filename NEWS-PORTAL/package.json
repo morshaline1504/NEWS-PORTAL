@@ -4,7 +4,8 @@
   "description": "A simple news portal with JSON-Server backend",
   "main": "index.js",
   "scripts": {
-    "start": "concurrently \"json-server --watch db.json --port 3000 --routes routes.json --no-gzip\" \"npm run open\"",
+    "start": "concurrently \"npm run server:filtered\" \"npm run open\"",
+    "server:filtered": "json-server --watch db.json --port 3000 --routes routes.json 2>&1 | grep -v 'Type s + enter' || json-server --watch db.json --port 3000 --routes routes.json",
     "open": "node -e \"setTimeout(() => {}, 2000)\" && open-cli index.html",
     "server": "json-server --watch db.json --port 3000 --routes routes.json",
     "dev": "json-server --watch db.json --port 3000"
