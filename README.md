@@ -15,7 +15,7 @@ A simple CRUD News Portal application using JSON-Server as a mock backend.
 
 ## Technologies Used
 
-- Frontend: HTML, CSS,JavaScript
+- Frontend: HTML, CSS
 - Backend: JSON-Server (Mock REST API)
 - Data Storage: JSON file-based database
 
