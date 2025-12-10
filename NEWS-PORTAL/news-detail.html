@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Detail - News Portal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1> News Portal</h1>
+            <div class="user-info">
+                <span id="userInfo"></span>
+                <button onclick="logout()">Logout</button>
+            </div>
+        </header>
+
+        <div class="news-detail">
+            <button onclick="window.location.href='news-list.html'" class="back-btn">← Back to News List</button>
+            
+            <div id="newsContent">
+               
+            </div>
+
+            <div class="comments-section">
+                <h3>Comments</h3>
+                <div id="commentsList">
+                   
+                </div>
+
+                <div class="add-comment">
+                    <h4>Add Comment</h4>
+                    <form id="commentForm">
+                        <textarea id="commentText" rows="3" placeholder="Write your comment..." required></textarea>
+                        <button type="submit">Add Comment</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+        let currentUser = null;
+        let currentNews = null;
+        let allUsers = [];
+
+        document.addEventListener('DOMContentLoaded', init);
+
+        async function init() {
+            const userStr = localStorage.getItem('currentUser');
+            if (!userStr) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            currentUser = JSON.parse(userStr);
+            document.getElementById('userInfo').textContent = `Logged in as: ${currentUser.name}`;
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const newsId = urlParams.get('id');
+            
+            if (!newsId) {
+                alert('No news ID provided');
+                window.location.href = 'news-list.html';
+                return;
+            }
+
+            await loadUsers();
+            await loadNews(newsId);
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_BASE}/users`);
+                allUsers = await response.json();
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        }
+
+        async function loadNews(id) {
+            try {
+                const response = await fetch(`${API_BASE}/news/${id}`);
+                currentNews = await response.json();
+                displayNews();
+                displayComments();
+            } catch (error) {
+                console.error('Error loading news:', error);
+                document.getElementById('newsContent').innerHTML = '<p>Error loading news</p>';
+            }
+        }
+
+        function displayNews() {
+            const author = allUsers.find(user => user.id === currentNews.author_id);
+            const authorName = author ? author.name : 'Unknown';
+
+            document.getElementById('newsContent').innerHTML = `
+                <h2>${currentNews.title}</h2>
+                <p class="news-meta">By: ${authorName}</p>
+                <div class="news-body">
+                    ${currentNews.body.replace(/\n/g, '<br>')}
+                </div>
+            `;
+        }
+
+        function displayComments() {
+            const commentsList = document.getElementById('commentsList');
+            
+            if (!currentNews.comments || currentNews.comments.length === 0) {
+                commentsList.innerHTML = '<p>No comments yet.</p>';
+                return;
+            }
+
+            commentsList.innerHTML = currentNews.comments.map(comment => {
+                const commenter = allUsers.find(user => user.id === comment.user_id);
+                const commenterName = commenter ? commenter.name : 'Unknown';
+                const timestamp = new Date(comment.timestamp).toLocaleString();
+
+                return `
+                    <div class="comment">
+                        <div class="comment-header">
+                            <strong>${commenterName}</strong>
+                            <span class="comment-time">${timestamp}</span>
+                        </div>
+                        <p>${comment.text}</p>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        document.getElementById('commentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const commentText = document.getElementById('commentText').value.trim();
+            
+            if (!commentText) {
+                alert('Comment text cannot be empty');
+                return;
+            }
+
+            const newComment = {
+                id: Date.now(), 
+                text: commentText,
+                user_id: currentUser.id,
+                timestamp: new Date().toISOString()
+            };
+
+           
+            const updatedComments = [...(currentNews.comments || []), newComment];
+
+            try {
+                const response = await fetch(`${API_BASE}/news/${currentNews.id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        comments: updatedComments
+                    })
+                });
+
+                if (response.ok) {
+                    document.getElementById('commentText').value = '';
+                    await loadNews(currentNews.id); 
+                } else {
+                    alert('Error adding comment');
+                }
+            } catch (error) {
+                console.error('Error adding comment:', error);
+                alert('Error adding comment');
+            }
+        });
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
