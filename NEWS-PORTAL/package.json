@@ -1,0 +1,27 @@
+{
+  "name": "news-portal",
+  "version": "1.0.0",
+  "description": "A simple news portal with JSON-Server backend",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently \"json-server --watch db.json --port 3000 --routes routes.json --quiet\" \"npm run open\"",
+    "open": "sleep 2 && open-cli http://127.0.0.1:5500/index.html || open index.html",
+    "server": "json-server --watch db.json --port 3000 --routes routes.json",
+    "dev": "json-server --watch db.json --port 3000"
+  },
+  "keywords": [
+    "news",
+    "portal",
+    "json-server"
+  ],
+  "author": "Morshaline Mojumder",
+  "license": "MIT",
+  "dependencies": {
+    "json-server": "^0.17.4"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "live-server": "^1.2.2",
+    "open-cli": "^8.0.0"
+  }
+}
