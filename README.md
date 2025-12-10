@@ -36,6 +36,7 @@ A simple CRUD News Portal application using JSON-Server as a mock backend.
    npm install --save-dev concurrently open-cli
 
 4. Start JSON Server:
+
    npm start
 
 
