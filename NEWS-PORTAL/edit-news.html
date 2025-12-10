@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit News - News Portal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1> Edit News</h1>
+            <div class="user-info">
+                <span id="userInfo"></span>
+                <button onclick="logout()">Logout</button>
+            </div>
+        </header>
+
+        <div class="form-container">
+            <form id="editNewsForm">
+                <div class="form-group">
+                    <label for="title">News Title:</label>
+                    <input type="text" id="title" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="body">News Content:</label>
+                    <textarea id="body" rows="10" required minlength="20"></textarea>
+                    <small>Minimum 20 characters required</small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Update News</button>
+                    <button type="button" onclick="window.location.href='news-list.html'">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+        let currentUser = null;
+        let newsId = null;
+
+        document.addEventListener('DOMContentLoaded', init);
+
+        async function init() {
+            const userStr = localStorage.getItem('currentUser');
+            if (!userStr) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            currentUser = JSON.parse(userStr);
+            document.getElementById('userInfo').textContent = `Logged in as: ${currentUser.name}`;
+
+            const urlParams = new URLSearchParams(window.location.search);
+            newsId = urlParams.get('id');
+            
+            if (!newsId) {
+                alert('No news ID provided');
+                window.location.href = 'news-list.html';
+                return;
+            }
+
+            await loadNews();
+        }
+
+        async function loadNews() {
+            try {
+                const response = await fetch(`${API_BASE}/news/${newsId}`);
+                const news = await response.json();
+
+               
+                if (news.author_id !== currentUser.id) {
+                    alert('You can only edit your own news');
+                    window.location.href = 'news-list.html';
+                    return;
+                }
+
+               
+                document.getElementById('title').value = news.title;
+                document.getElementById('body').value = news.body;
+            } catch (error) {
+                console.error('Error loading news:', error);
+                alert('Error loading news');
+                window.location.href = 'news-list.html';
+            }
+        }
+
+        document.getElementById('editNewsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const title = document.getElementById('title').value.trim();
+            const body = document.getElementById('body').value.trim();
+
+            if (!title) {
+                alert('News title cannot be empty');
+                return;
+            }
+
+            if (body.length < 20) {
+                alert('News body must be at least 20 characters');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/news/${newsId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        body: body
+                    })
+                });
+
+                if (response.ok) {
+                    alert('News updated successfully!');
+                    window.location.href = 'news-list.html';
+                } else {
+                    alert('Error updating news');
+                }
+            } catch (error) {
+                console.error('Error updating news:', error);
+                alert('Error updating news');
+            }
+        });
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
