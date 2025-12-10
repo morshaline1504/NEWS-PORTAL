@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Portal - All News</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1> News Portal</h1>
+            <div class="user-info">
+                <span id="userInfo"></span>
+                <button onclick="logout()">Logout</button>
+            </div>
+        </header>
+
+        <div class="actions">
+            <button class="btn-primary" onclick="window.location.href='create-news.html'">
+                 Create News
+            </button>
+            <input type="text" id="searchInput" placeholder="Search news by title..." onkeyup="filterNews()">
+        </div>
+
+        <div id="newsList" class="news-list">
+           
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+        let allNews = [];
+        let allUsers = [];
+        let currentUser = null;
+
+        document.addEventListener('DOMContentLoaded', init);
+
+        async function init() {
+           
+            const userStr = localStorage.getItem('currentUser');
+            if (!userStr) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            currentUser = JSON.parse(userStr);
+            document.getElementById('userInfo').textContent = `Logged in as: ${currentUser.name}`;
+            
+            await loadUsers();
+            await loadNews();
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_BASE}/users`);
+                allUsers = await response.json();
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        }
+
+        async function loadNews() {
+            try {
+                const response = await fetch(`${API_BASE}/news`);
+                allNews = await response.json();
+                displayNews(allNews);
+            } catch (error) {
+                console.error('Error loading news:', error);
+                document.getElementById('newsList').innerHTML = '<p>Error loading news</p>';
+            }
+        }
+
+        function displayNews(newsItems) {
+            const newsList = document.getElementById('newsList');
+            
+            if (newsItems.length === 0) {
+                newsList.innerHTML = '<p>No news found</p>';
+                return;
+            }
+
+            newsList.innerHTML = newsItems.map(news => {
+                const author = allUsers.find(user => user.id === news.author_id);
+                const authorName = author ? author.name : 'Unknown';
+                const commentCount = news.comments ? news.comments.length : 0;
+                const isAuthor = currentUser.id === news.author_id;
+
+                return `
+                    <div class="news-item">
+                        <h3>${news.title}</h3>
+                        <p class="news-meta">By: ${authorName} | Comments: ${commentCount}</p>
+                        <p class="news-preview">${news.body.substring(0, 150)}...</p>
+                        <div class="news-actions">
+                            <button onclick="viewNews(${news.id})">View Details</button>
+                            ${isAuthor ? `
+                                <button onclick="editNews(${news.id})" class="btn-edit">Edit</button>
+                                <button onclick="deleteNews(${news.id})" class="btn-delete">Delete</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterNews() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filteredNews = allNews.filter(news => 
+                news.title.toLowerCase().includes(searchTerm)
+            );
+            displayNews(filteredNews);
+        }
+
+        function viewNews(id) {
+            window.location.href = `news-detail.html?id=${id}`;
+        }
+
+        function editNews(id) {
+            window.location.href = `edit-news.html?id=${id}`;
+        }
+
+        async function deleteNews(id) {
+            if (!confirm('Are you sure you want to delete this news?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/news/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    alert('News deleted successfully!');
+                    loadNews();
+                } else {
+                    alert('Error deleting news');
+                }
+            } catch (error) {
+                console.error('Error deleting news:', error);
+                alert('Error deleting news');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
